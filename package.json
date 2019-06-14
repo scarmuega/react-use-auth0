@@ -1,0 +1,39 @@
+{
+  "name": "react-use-auth0",
+  "version": "1.0.0-beta1",
+  "description": "Auth0 React integration using context and hooks",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scarmuega/react-use-auth0.git"
+  },
+  "keywords": [
+    "auth0",
+    "react",
+    "hooks"
+  ],
+  "author": "scarmuega",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/scarmuega/react-use-auth0/issues"
+  },
+  "homepage": "https://github.com/scarmuega/react-use-auth0#readme",
+  "devDependencies": {
+    "@types/auth0-js": "^9.10.2",
+    "@types/react": "^16.8.20",
+    "@types/react-dom": "^16.8.4",
+    "awesome-typescript-loader": "^5.2.1",
+    "react-dom": "^16.8.6",
+    "source-map-loader": "^0.2.4",
+    "typescript": "^3.5.2",
+    "webpack": "^4.34.0",
+    "webpack-cli": "^3.3.4"
+  },
+  "dependencies": {
+    "auth0-js": "^9.10.4",
+    "react": "^16.8.6"
+  }
+}
