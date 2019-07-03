@@ -16,6 +16,7 @@ export interface Auth0ProviderProps {
   redirectUri: string;
   responseType: string;
   scope: string;
+  sessionStorage: boolean | false;
 }
 
 type OnAuthChangeCallback = (result: auth0.Auth0DecodedHash | null) => void;
@@ -45,8 +46,19 @@ function trySetAuthResultFromHash(webAuth: auth0.WebAuth, onResult: OnAuthChange
   });
 }
 
+function setSessionStorage(authResult: MaybeDecodedHash) {
+  authResult && authResult.accessToken && window.sessionStorage.setItem('accessToken', authResult.accessToken);
+  authResult && authResult.idToken && window.sessionStorage.setItem('idToken', authResult.idToken);
+}
+
+function clearSessionStorage() {
+  window.sessionStorage.removeItem('accessToken')
+  window.sessionStorage.removeItem('idToken')
+}
+
 function executLogout(webAuth: auth0.WebAuth, onAuthChange: OnAuthChangeCallback) {
   webAuth.logout({ returnTo: window.location.origin });
+  clearSessionStorage();
   onAuthChange(null);
 }
 
@@ -55,9 +67,9 @@ function buildContextValueFromAuthResult(webAuth: auth0.WebAuth, result: MaybeDe
     login: () => webAuth.authorize(),
     logout: () => executLogout(webAuth, onAuthChange),
     renew: () => console.log("renew"),
-    isAuthenticated: () => (!!result && !!result.accessToken && !!result.idToken),
-    accessToken: result && result.accessToken || null,
-    idToken: result && result.idToken || null,
+    isAuthenticated: () => ((!!result && !!result.accessToken && !!result.idToken) || (!!window.sessionStorage.getItem('accessToken') && !!window.sessionStorage.getItem('idToken'))),
+    accessToken: result && result.accessToken || window.sessionStorage.getItem('accessToken') || null,
+    idToken: result && result.idToken || window.sessionStorage.getItem('idToken') || null,
   }
 }
 
@@ -67,6 +79,10 @@ export function Auth0Setup(props: PropsWithChildren<Auth0ProviderProps>) {
   const [authResult, setAuthResult] = useState<MaybeDecodedHash>(null);
 
   useEffect(() => trySetAuthResultFromHash(webAuth.current, setAuthResult), []);
+
+  if (props.sessionStorage) {
+    setSessionStorage(authResult);
+  }
 
   const output = buildContextValueFromAuthResult(webAuth.current, authResult, setAuthResult);
 
