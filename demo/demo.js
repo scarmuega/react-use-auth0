@@ -29,5 +29,5 @@ function App() {
     var auth = index_1.useAuth0();
     return auth.isAuthenticated() ? react_1.default.createElement(PrivateData, null) : react_1.default.createElement(LoginButton, null);
 }
-ReactDOM.render(react_1.default.createElement(index_1.Auth0Setup, { domain: "my-tenant.auth0.com", clientID: "client-id-data-provided-by-auth0", redirectUri: "http://localhost:3001", responseType: "token id_token", scope: "openid" },
+ReactDOM.render(react_1.default.createElement(index_1.Auth0Setup, { domain: "my-tenant.auth0.com", clientID: "client-id-data-provided-by-auth0", redirectUri: "http://localhost:3001", responseType: "token id_token", scope: "openid", sessionStorage: true },
     react_1.default.createElement(App, null)), document.getElementById("root"));

@@ -29,6 +29,7 @@ ReactDOM.render(
         redirectUri="http://localhost:3001"
         responseType="token id_token"
         scope="openid"
+        sessionStorage={true}
     >
         <App />
     </Auth0Setup>,
