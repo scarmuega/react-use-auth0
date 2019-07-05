@@ -16,6 +16,7 @@ export interface Auth0ProviderProps {
   redirectUri: string;
   responseType: string;
   scope: string;
+  audience?: string;
   sessionStorage: boolean | false;
 }
 
