@@ -1,95 +1,133 @@
-import React, { useState, useEffect, useRef, useContext, PropsWithChildren } from 'react';
-import auth0 from 'auth0-js';
+import React, { useState, useEffect, useContext, PropsWithChildren, useRef } from "react";
+import createAuth0Client from "@auth0/auth0-spa-js";
+import Auth0Client from "@auth0/auth0-spa-js/dist/typings/Auth0Client";
 
-export interface UseAuth0ContextValue {
-    login: () => void;
-    logout: () => void;
-    renew: () => void;
-    isAuthenticated: () => boolean;
-    accessToken: string | null;
-    idToken: string | null;
+const DEFAULT_REDIRECT_CALLBACK = () => window.history.replaceState({}, document.title, window.location.pathname);
+
+export interface Auth0Renders {
+    isAuthenticated: boolean;
+    user: any | null;
+    loading: boolean;
+    popupOpen: boolean;
+    loginWithPopup: (options?: PopupLoginOptions) => void;
+    getTokenSilently: (options?: GetTokenSilentlyOptions) => Promise<string>;
+    logout: (options?: LogoutOptions) => void;
 }
+
+const Auth0Context = React.createContext<Auth0Renders>({
+    isAuthenticated: false,
+    user: null,
+    loading: false,
+    popupOpen: false,
+    loginWithPopup: () => { throw Error("not initialized"); },
+    getTokenSilently: () => { throw Error("not initialized"); },
+    logout: () => { throw Error("not initialized"); },
+});
+
+export const useAuth0 = () => useContext(Auth0Context);
 
 export interface Auth0ProviderProps {
-  domain: string;
-  clientID: string;
-  redirectUri: string;
-  responseType: string;
-  scope: string;
-  audience?: string;
-  sessionStorage: boolean | false;
+    domain: string;
+    clientId: string;
+    redirectUri: string;
+    scope?: string;
+    audience?: string;
+    issuer?: string;
+    onRedirectCallback: (appState: any) => void;
 }
 
-type OnAuthChangeCallback = (result: auth0.Auth0DecodedHash | null) => void;
+interface ProviderState {
+    isInitialized: boolean;
+    isAuthenticated: boolean;
+    loading: boolean;
+    popupOpen: boolean;
+    user: any;
+}
 
-type MaybeDecodedHash = auth0.Auth0DecodedHash | null | undefined;
+type ClientRef = React.MutableRefObject<Auth0Client | undefined>;
+type ChangeProviderState = (prevState: ProviderState) => ProviderState;
+type SetProviderState = (change: ChangeProviderState) => void;
 
-const UninitializedAuthValue: UseAuth0ContextValue = {
-  login: () => console.warn("setup required"),
-  logout: () => console.warn("setup required"),
-  renew: () => console.warn("setup required"),
-  isAuthenticated: () => false,
-  accessToken: null,
-  idToken: null,
+async function initializeClient(props: Auth0ProviderProps, clientRef: ClientRef, setState: SetProviderState) {
+    const client = await createAuth0Client({
+        domain: props.domain,
+        client_id: props.clientId,
+        redirect_uri: props.redirectUri,
+        audience: props.audience,
+        scope: props.scope,
+        issuer: props.issuer,
+    });
+
+    clientRef.current = client;
+
+    if (window.location.search.includes("code=")) {
+        const { appState } = await client.handleRedirectCallback();
+        props.onRedirectCallback(appState);
+    }
+
+    const isAuthenticated = await client.isAuthenticated();
+    const user = isAuthenticated ? await client.getUser() : null;
+    setState(prevState => ({...prevState, isInitialized: true, isAuthenticated, user }));
+}
+
+function unwrapClientRef(clientRef: ClientRef): Auth0Client {
+    if (!clientRef.current) {
+        throw new Error("auth0 client has not been initialized");
+    }
+
+    return clientRef.current;
+}
+
+async function loginWithPopup(clientRef: ClientRef, setState: SetProviderState, options?: PopupLoginOptions) {
+    const client = unwrapClientRef(clientRef);
+
+    setState(prev => ({...prev, popupOpen: true }));
+
+    try {
+        await client.loginWithPopup(options);
+    } catch (error) {
+        console.error(error);
+        setState(prev => ({...prev, isAuthenticated: false, user: null, popupOpen: false }));
+    }
+
+    const user = await client.getUser();
+    setState(prev => ({...prev, user, isAuthenticated: true, popupOpen: false }));
 };
 
-const UseAuth0Context = React.createContext<UseAuth0ContextValue>(UninitializedAuthValue);
-
-function trySetAuthResultFromHash(webAuth: auth0.WebAuth, onResult: OnAuthChangeCallback) {
-  console.log("trying to parse hash");
-  webAuth.parseHash((err, authResult) => {
-    if (authResult && authResult.accessToken && authResult.idToken) {
-      onResult(authResult);
-    } else if (err) {
-      console.log(err);
-      onResult(null);
-    }
-  });
+async function getTokenSilently(clientRef: ClientRef, options?: GetTokenSilentlyOptions) {
+    const client = unwrapClientRef(clientRef);
+    return await client.getTokenSilently(options);
 }
 
-function setSessionStorage(authResult: MaybeDecodedHash) {
-  authResult && authResult.accessToken && window.sessionStorage.setItem('accessToken', authResult.accessToken);
-  authResult && authResult.idToken && window.sessionStorage.setItem('idToken', authResult.idToken);
-}
+async function logout(clientRef: ClientRef, setState: SetProviderState, options?: LogoutOptions) {
+    const client = unwrapClientRef(clientRef);
+    client.logout(options);
+    setState(prev => ({...prev, user: null, isAuthenticated: false }));
+};
 
-function clearSessionStorage() {
-  window.sessionStorage.removeItem('accessToken')
-  window.sessionStorage.removeItem('idToken')
-}
+const INITIAL_STATE = { isInitialized: false, isAuthenticated: false, user: null, popupOpen: false, loading: false }
 
-function executLogout(webAuth: auth0.WebAuth, onAuthChange: OnAuthChangeCallback) {
-  webAuth.logout({ returnTo: window.location.origin });
-  clearSessionStorage();
-  onAuthChange(null);
-}
+export const Auth0Setup = (props: PropsWithChildren<Auth0ProviderProps>) => {
+    const [state, setState] = useState<ProviderState>(INITIAL_STATE);
+    const auth0Client = useRef<Auth0Client>();
 
-function buildContextValueFromAuthResult(webAuth: auth0.WebAuth, result: MaybeDecodedHash, onAuthChange: OnAuthChangeCallback): UseAuth0ContextValue {
-  return {
-    login: () => webAuth.authorize(),
-    logout: () => executLogout(webAuth, onAuthChange),
-    renew: () => console.log("renew"),
-    isAuthenticated: () => ((!!result && !!result.accessToken && !!result.idToken) || (!!window.sessionStorage.getItem('accessToken') && !!window.sessionStorage.getItem('idToken'))),
-    accessToken: result && result.accessToken || window.sessionStorage.getItem('accessToken') || null,
-    idToken: result && result.idToken || window.sessionStorage.getItem('idToken') || null,
-  }
-}
+    useEffect(() => {
+        initializeClient(props, auth0Client, setState);
+    }, []);
 
-export function Auth0Setup(props: PropsWithChildren<Auth0ProviderProps>) {
-  const webAuth = useRef(new auth0.WebAuth({...props}));
-
-  const [authResult, setAuthResult] = useState<MaybeDecodedHash>(null);
-
-  useEffect(() => trySetAuthResultFromHash(webAuth.current, setAuthResult), []);
-
-  if (props.sessionStorage) {
-    setSessionStorage(authResult);
-  }
-
-  const output = buildContextValueFromAuthResult(webAuth.current, authResult, setAuthResult);
-
-  return <UseAuth0Context.Provider value={output}>{props.children}</UseAuth0Context.Provider>
-}
-
-export function useAuth0() {
-  return useContext(UseAuth0Context);
-}
+    return (
+        <Auth0Context.Provider
+            value={{
+                isAuthenticated: state.isAuthenticated,
+                user: state.user,
+                loading: state.loading,
+                popupOpen: state.popupOpen,
+                loginWithPopup: (options?: PopupLoginOptions) => loginWithPopup(auth0Client, setState, options),
+                getTokenSilently: (options?: GetTokenSilentlyOptions) => getTokenSilently(auth0Client, options),
+                logout: (options?: LogoutOptions) => logout(auth0Client, setState, options),
+            }}
+        >
+            {props.children}
+        </Auth0Context.Provider>
+    );
+};
