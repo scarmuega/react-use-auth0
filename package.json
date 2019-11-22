@@ -4,7 +4,9 @@
     "description": "Auth0 React integration using context and hooks",
     "main": "index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "npx tsc",
+        "publish": "npm run build && npm publish"
     },
     "repository": {
         "type": "git",
