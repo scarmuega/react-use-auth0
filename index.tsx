@@ -1,26 +1,27 @@
 import React, { useState, useEffect, useContext, PropsWithChildren, useRef } from "react";
 import createAuth0Client from "@auth0/auth0-spa-js";
+import { useAsync } from 'react-async-hook';
 import Auth0Client from "@auth0/auth0-spa-js/dist/typings/Auth0Client";
 
 const DEFAULT_REDIRECT_CALLBACK = () => window.history.replaceState({}, document.title, window.location.pathname);
 
 export interface Auth0Renders {
+    clientRef: ClientRef | null;
     isAuthenticated: boolean;
-    user: any | null;
     loading: boolean;
     popupOpen: boolean;
     loginWithPopup: (options?: PopupLoginOptions) => void;
-    getTokenSilently: (options?: GetTokenSilentlyOptions) => Promise<string>;
+    loginWithRedirect: (options?: RedirectLoginOptions) => void;
     logout: (options?: LogoutOptions) => void;
 }
 
 const Auth0Context = React.createContext<Auth0Renders>({
+    clientRef: null,
     isAuthenticated: false,
-    user: null,
     loading: false,
     popupOpen: false,
     loginWithPopup: () => { throw Error("not initialized"); },
-    getTokenSilently: () => { throw Error("not initialized"); },
+    loginWithRedirect: () => { throw Error("not initialized"); },
     logout: () => { throw Error("not initialized"); },
 });
 
@@ -41,7 +42,6 @@ interface ProviderState {
     isAuthenticated: boolean;
     loading: boolean;
     popupOpen: boolean;
-    user: any;
 }
 
 type ClientRef = React.MutableRefObject<Auth0Client | undefined>;
@@ -66,12 +66,12 @@ async function initializeClient(props: Auth0ProviderProps, clientRef: ClientRef,
     }
 
     const isAuthenticated = await client.isAuthenticated();
-    const user = isAuthenticated ? await client.getUser() : null;
-    setState(prevState => ({...prevState, isInitialized: true, isAuthenticated, user }));
+
+    setState(prevState => ({...prevState, isInitialized: true, isAuthenticated }));
 }
 
-function unwrapClientRef(clientRef: ClientRef): Auth0Client {
-    if (!clientRef.current) {
+function unwrapClientRef(clientRef: ClientRef | null): Auth0Client {
+    if (!clientRef || !clientRef.current) {
         throw new Error("auth0 client has not been initialized");
     }
 
@@ -87,17 +87,23 @@ async function loginWithPopup(clientRef: ClientRef, setState: SetProviderState, 
         await client.loginWithPopup(options);
     } catch (error) {
         console.error(error);
-        setState(prev => ({...prev, isAuthenticated: false, user: null, popupOpen: false }));
+        setState(prev => ({...prev, isAuthenticated: false, popupOpen: false }));
     }
 
     const user = await client.getUser();
-    setState(prev => ({...prev, user, isAuthenticated: true, popupOpen: false }));
+    setState(prev => ({...prev, isAuthenticated: true, popupOpen: false }));
 };
 
-async function getTokenSilently(clientRef: ClientRef, options?: GetTokenSilentlyOptions) {
+async function loginWithRedirect(clientRef: ClientRef, setState: SetProviderState, options?: RedirectLoginOptions) {
     const client = unwrapClientRef(clientRef);
-    return await client.getTokenSilently(options);
-}
+
+    try {
+        await client.loginWithRedirect(options);
+    } catch (error) {
+        console.error(error);
+        setState(prev => ({...prev, isAuthenticated: false, user: null }));
+    }
+};
 
 async function logout(clientRef: ClientRef, setState: SetProviderState, options?: LogoutOptions) {
     const client = unwrapClientRef(clientRef);
@@ -109,25 +115,37 @@ const INITIAL_STATE = { isInitialized: false, isAuthenticated: false, user: null
 
 export const Auth0Setup = (props: PropsWithChildren<Auth0ProviderProps>) => {
     const [state, setState] = useState<ProviderState>(INITIAL_STATE);
-    const auth0Client = useRef<Auth0Client>();
+    const clientRef = useRef<Auth0Client>();
 
     useEffect(() => {
-        initializeClient(props, auth0Client, setState);
+        initializeClient(props, clientRef, setState);
     }, []);
 
     return (
         <Auth0Context.Provider
             value={{
+                clientRef,
                 isAuthenticated: state.isAuthenticated,
-                user: state.user,
                 loading: state.loading,
                 popupOpen: state.popupOpen,
-                loginWithPopup: (options?: PopupLoginOptions) => loginWithPopup(auth0Client, setState, options),
-                getTokenSilently: (options?: GetTokenSilentlyOptions) => getTokenSilently(auth0Client, options),
-                logout: (options?: LogoutOptions) => logout(auth0Client, setState, options),
+                loginWithPopup: (options?: PopupLoginOptions) => loginWithPopup(clientRef, setState, options),
+                loginWithRedirect: (options?: RedirectLoginOptions) => loginWithRedirect(clientRef, setState, options),
+                logout: (options?: LogoutOptions) => logout(clientRef, setState, options),
             }}
         >
-            {props.children}
+            {state.isInitialized ? props.children : null}
         </Auth0Context.Provider>
     );
 };
+
+export function useAuth0User(options?: GetUserOptions) {
+    const auth0 = useAuth0();
+    const client = unwrapClientRef(auth0.clientRef);
+    return useAsync(async () => client.getUser(options), []);
+}
+
+export function useAuth0Token(options?: GetTokenSilentlyOptions) {
+    const auth0 = useAuth0();
+    const client = unwrapClientRef(auth0.clientRef);
+    return useAsync(async () => client.getTokenSilently(options), []);
+}

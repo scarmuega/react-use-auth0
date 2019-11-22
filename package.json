@@ -1,40 +1,39 @@
 {
-  "name": "react-use-auth0",
-  "version": "1.0.0-beta6",
-  "description": "Auth0 React integration using context and hooks",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/scarmuega/react-use-auth0.git"
-  },
-  "keywords": [
-    "auth0",
-    "react",
-    "hooks"
-  ],
-  "author": "scarmuega",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/scarmuega/react-use-auth0/issues"
-  },
-  "homepage": "https://github.com/scarmuega/react-use-auth0#readme",
-  "devDependencies": {
-    "@types/auth0-js": "^9.10.6",
-    "@types/react": "^16.9.11",
-    "@types/react-dom": "^16.9.4",
-    "awesome-typescript-loader": "^5.2.1",
-    "react-dom": "^16.12.0",
-    "source-map-loader": "^0.2.4",
-    "typescript": "^3.7.2",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.10"
-  },
-  "dependencies": {
-    "@auth0/auth0-spa-js": "^1.6.0",
-    "auth0-js": "^9.11.3",
-    "react": "^16.12.0"
-  }
+    "name": "react-use-auth0",
+    "version": "1.0.0-beta10",
+    "description": "Auth0 React integration using context and hooks",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/scarmuega/react-use-auth0.git"
+    },
+    "keywords": [
+        "auth0",
+        "react",
+        "hooks"
+    ],
+    "author": "scarmuega",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/scarmuega/react-use-auth0/issues"
+    },
+    "homepage": "https://github.com/scarmuega/react-use-auth0#readme",
+    "devDependencies": {
+        "@types/react": "^16.9.11",
+        "@types/react-dom": "^16.9.4",
+        "awesome-typescript-loader": "^5.2.1",
+        "react": "^16.12.0",
+        "react-dom": "^16.12.0",
+        "source-map-loader": "^0.2.4",
+        "typescript": "^3.7.2",
+        "webpack": "^4.41.2",
+        "webpack-cli": "^3.3.10"
+    },
+    "dependencies": {
+        "@auth0/auth0-spa-js": "^1.6.0",
+        "react-async-hook": "^3.6.1"
+    }
 }
