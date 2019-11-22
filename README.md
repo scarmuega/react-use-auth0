@@ -18,41 +18,53 @@ Usage
 As the name implies, it uses react hooks. Here's a snippet of how to use the `useAuth0` and the `Auth0Setup` HoC that provides the context for the children:
 
 ```tsx
-import React, { useEffect } from "react";
+import React from "react";
 import * as ReactDOM from "react-dom";
-import { Auth0Setup, useAuth0 } from "../index";
+import { Auth0Setup, useAuth0, useAuth0Token, useAuth0User } from "../index";
 
 function PrivateData() {
-    const auth = useAuth0();
+    const user = useAuth0User();
+    const token = useAuth0Token();
     return (
         <div>
-            <span>your user data is: {JSON.stringify(auth.user)}</span>
-            <button onClick={() => auth.getTokenSilently().then(token => console.log(token)) }>get token</button>
-            <button onClick={() => auth.logout()}>logout</button>
+            {user.result && <span>your user is: {JSON.stringify(user.result)}</span>}
+            {token.result && <button onClick={() => console.log(token.result)}>log token</button>}
         </div>
     );
 }
 
+function LogoutButton() {
+    const auth = useAuth0();
+    return <button onClick={() => auth.logout()}>Logout</button>
+}
+
 function LoginButton() {
     const auth = useAuth0();
-    return <button onClick={() => auth.loginWithPopup()}>login</button>
+    return <button onClick={() => auth.loginWithRedirect({ appState: { button: "button_1" } })}>Login</button>
 }
 
 function App() {
     const auth = useAuth0();
-    return auth.isAuthenticated ? <PrivateData /> : <LoginButton />
+    return (
+        <>
+            {auth.isAuthenticated && <PrivateData />}
+            {!auth.isAuthenticated ? <LoginButton /> : <LogoutButton />}
+        </>
+    );
 }
 
 // A function that routes the user to the right place
 // after login
 const onRedirectCallback = (appState: any) => {
-    window.location.pathname = "/"
+    window.history.replaceState({}, document.title, window.location.pathname);
+    const button = appState && appState.button;
+    console.log(`logged in from button: ${button}`);
 };
 
 ReactDOM.render(
     <Auth0Setup
         domain="my-tenant.auth0.com"
-        clientId="my-auth0-provided-client-id"
+        clientId="client-id-provided-by-auth0"
         redirectUri="http://localhost:3001"
         onRedirectCallback={onRedirectCallback}
         scope="openid"

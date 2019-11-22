@@ -1,7 +1,6 @@
-import React, { useEffect } from "react";
+import React from "react";
 import * as ReactDOM from "react-dom";
 import { Auth0Setup, useAuth0, useAuth0Token, useAuth0User } from "../index";
-
 
 function PrivateData() {
     const user = useAuth0User();
