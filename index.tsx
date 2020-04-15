@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, PropsWithChildren, useRef } from "react";
-import createAuth0Client from "@auth0/auth0-spa-js";
+import createAuth0Client, { PopupLoginOptions, RedirectLoginOptions, LogoutOptions, GetUserOptions, GetTokenSilentlyOptions } from "@auth0/auth0-spa-js";
 import { useAsync } from 'react-async-hook';
 import Auth0Client from "@auth0/auth0-spa-js/dist/typings/Auth0Client";
 
@@ -34,7 +34,7 @@ export interface Auth0ProviderProps {
     scope?: string;
     audience?: string;
     issuer?: string;
-    onRedirectCallback: (appState: any) => void;
+    onRedirectCallback?: (appState: any) => void;
 }
 
 interface ProviderState {
@@ -62,7 +62,7 @@ async function initializeClient(props: Auth0ProviderProps, clientRef: ClientRef,
 
     if (window.location.search.includes("code=")) {
         const { appState } = await client.handleRedirectCallback();
-        props.onRedirectCallback(appState);
+        props.onRedirectCallback && props.onRedirectCallback(appState);
     }
 
     const isAuthenticated = await client.isAuthenticated();
