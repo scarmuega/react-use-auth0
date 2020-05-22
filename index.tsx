@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, PropsWithChildren, useRef } from "react";
-import createAuth0Client, { PopupLoginOptions, RedirectLoginOptions, LogoutOptions, GetUserOptions, GetTokenSilentlyOptions } from "@auth0/auth0-spa-js";
+import createAuth0Client, { PopupLoginOptions, RedirectLoginOptions, LogoutOptions, GetUserOptions, GetTokenSilentlyOptions, GetIdTokenClaimsOptions } from "@auth0/auth0-spa-js";
 import { useAsync } from 'react-async-hook';
 import Auth0Client from "@auth0/auth0-spa-js/dist/typings/Auth0Client";
 
@@ -148,4 +148,10 @@ export function useAuth0Token(options?: GetTokenSilentlyOptions) {
     const auth0 = useAuth0();
     const client = unwrapClientRef(auth0.clientRef);
     return useAsync(async () => client.getTokenSilently(options), []);
+}
+
+export function useAuth0Claims(options?: GetIdTokenClaimsOptions) {
+    const auth0 = useAuth0();
+    const client = unwrapClientRef(auth0.clientRef);
+    return useAsync(async () => client.getIdTokenClaims(options), []);
 }
