@@ -62,7 +62,8 @@ async function initializeClient(props: Auth0ProviderProps, clientRef: ClientRef,
 
     if (window.location.search.includes("code=")) {
         const { appState } = await client.handleRedirectCallback();
-        props.onRedirectCallback && props.onRedirectCallback(appState);
+        const callback = props.onRedirectCallback || DEFAULT_REDIRECT_CALLBACK;
+        callback(appState);
     }
 
     const isAuthenticated = await client.isAuthenticated();
@@ -90,7 +91,6 @@ async function loginWithPopup(clientRef: ClientRef, setState: SetProviderState, 
         setState(prev => ({...prev, isAuthenticated: false, popupOpen: false }));
     }
 
-    const user = await client.getUser();
     setState(prev => ({...prev, isAuthenticated: true, popupOpen: false }));
 };
 
