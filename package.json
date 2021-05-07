@@ -1,6 +1,6 @@
 {
     "name": "react-use-auth0",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "Auth0 React integration using context and hooks",
     "main": "lib/index.js",
     "typings": "lib/index.d.ts",
